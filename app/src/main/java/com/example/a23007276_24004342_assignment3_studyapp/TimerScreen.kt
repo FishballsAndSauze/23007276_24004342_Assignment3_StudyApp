@@ -1,33 +1,31 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.max
 import kotlin.math.min
+
+private val quotes = listOf(
+    "Focus is a muscle. Train it.",
+    "One session at a time.",
+    "You don’t have to be perfect, just consistent.",
+    "Deep work compounds.",
+    "Small progress is still progress."
+)
 
 @Composable
 internal fun TimerScreen(
@@ -49,11 +47,14 @@ internal fun TimerScreen(
     onReset: () -> Unit
 ) {
     val currentPhase = phases.getOrNull(phaseIndex)
+    val isFinished = started && phases.isNotEmpty() && phaseIndex >= phases.lastIndex && remainingMs <= 0
     val background = when {
-        !started -> Ink
-        currentPhase?.isBreak == true -> Color(0xFF143C2A)
-        else -> Color(0xFF48252E)
+        !started || isFinished -> Ink
+        currentPhase?.isBreak == true -> SoftGreen
+        else -> SoftRed
     }
+    val textColor = if (!started || isFinished) WhiteText else Ink
+
     Column(
         modifier = Modifier.fillMaxSize().background(background).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -81,45 +82,75 @@ internal fun TimerScreen(
                         color = if (study > 0) Cyan else Color(0xFFFF9292),
                         fontSize = 13.sp
                     )
-                    Button(
-                        onClick = onStart,
-                        enabled = total > 0 && study > 0,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Start focus session") }
+                    Button(onClick = onStart, enabled = total > 0 && study > 0, modifier = Modifier.fillMaxWidth()) {
+                        Text("Start focus session")
+                    }
                 }
             }
             Text("Study phases are divided evenly around your breaks.", color = Muted, fontSize = 12.sp)
+        } else if (isFinished) {
+            Text("SESSION COMPLETE", color = Cyan, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("Great work!", color = WhiteText, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            val totalStudy = phases.filter { !it.isBreak }.sumOf { it.durationMs } / 60000
+            Text("You focused for $totalStudy minutes", color = Muted, fontSize = 16.sp)
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
+                Text("Back to planner")
+            }
         } else {
-            Text("FOCUS SESSION", color = WhiteText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            Text(currentPhase?.name ?: "Session complete", color = WhiteText, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text(
-                formatTime(remainingMs),
-                color = WhiteText,
-                fontSize = 54.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text("Phase ${min(phaseIndex + 1, phases.size)} of ${phases.size}", color = WhiteText.copy(alpha = 0.8f))
-            LinearProgressIndicator(
-                progress = {
-                    val duration = currentPhase?.durationMs ?: 1L
-                    (1f - remainingMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                },
-                modifier = Modifier.fillMaxWidth().height(9.dp),
-                color = if (currentPhase?.isBreak == true) Cyan else Color(0xFFFF9B9B),
-                trackColor = Color.White.copy(alpha = 0.2f)
-            )
-            Spacer(Modifier.height(18.dp))
+            Text("FOCUS SESSION", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(currentPhase?.name ?: "Session", color = textColor, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+
+            // Circular ring
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(220.dp)) {
+                val progress = if (currentPhase != null && currentPhase.durationMs > 0) {
+                    1f - (remainingMs.toFloat() / currentPhase.durationMs.toFloat())
+                } else 0f
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val stroke = 14.dp.toPx()
+                    drawArc(
+                        color = Color.White.copy(alpha = 0.25f),
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = stroke, cap = StrokeCap.Round),
+                        size = Size(size.minDimension, size.minDimension),
+                        topLeft = Offset((size.width - size.minDimension) / 2, (size.height - size.minDimension) / 2)
+                    )
+                    drawArc(
+                        color = if (currentPhase?.isBreak == true) Cyan else Color(0xFFE85A5A),
+                        startAngle = -90f,
+                        sweepAngle = 360f * progress,
+                        useCenter = false,
+                        style = Stroke(width = stroke, cap = StrokeCap.Round),
+                        size = Size(size.minDimension, size.minDimension),
+                        topLeft = Offset((size.width - size.minDimension) / 2, (size.height - size.minDimension) / 2)
+                    )
+                }
+                Text(formatTime(remainingMs), color = textColor, fontSize = 42.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Text("Phase ${min(phaseIndex + 1, phases.size)} of ${phases.size}", color = textColor.copy(alpha = 0.8f))
+
+            // Next phase preview
+            val next = phases.getOrNull(phaseIndex + 1)
+            if (next != null) {
+                Text("Next: ${next.name} (${formatTime(next.durationMs)})", color = textColor.copy(alpha = 0.7f), fontSize = 13.sp)
+            }
+
+            // Quote during study
+            if (currentPhase?.isBreak != true) {
+                val quote = quotes[phaseIndex % quotes.size]
+                Text("“$quote”", color = textColor.copy(alpha = 0.75f), fontSize = 13.sp)
+            }
+
+            Spacer(Modifier.height(12.dp))
             Button(onClick = onPauseResume, modifier = Modifier.fillMaxWidth()) {
                 Text(if (running) "Pause timer" else "Resume timer")
             }
             OutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
-                Text("Reset and change settings", color = WhiteText)
+                Text("Reset and change settings", color = textColor)
             }
-            Text(
-                if (running) "Keep this screen open to watch the session." else "Timer paused or finished.",
-                color = WhiteText.copy(alpha = 0.8f),
-                fontSize = 12.sp
-            )
         }
     }
 }
