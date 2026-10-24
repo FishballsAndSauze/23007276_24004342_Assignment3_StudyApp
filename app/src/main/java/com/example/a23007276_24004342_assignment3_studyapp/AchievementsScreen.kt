@@ -1,5 +1,8 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+/*Achievements page. Each badge is unlocked automatically
+* when the user's progress meets the conditions.*/
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -17,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+
+//List of Achievements/badges
 @Composable
 internal fun AchievementsScreen(progress: UserProgress, tasks: List<StudyTask>) {
     val achievements = listOf(
@@ -34,6 +39,7 @@ internal fun AchievementsScreen(progress: UserProgress, tasks: List<StudyTask>) 
         Text("Achievements", color = WhiteText, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text("${achievements.count { it.unlocked }} of ${achievements.size} unlocked", color = Muted)
 
+        // Two column grid of badge cards. Locked badges are dimmed with an empty star
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             verticalArrangement = Arrangement.spacedBy(12.dp),

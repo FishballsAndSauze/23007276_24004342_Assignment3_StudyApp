@@ -1,5 +1,9 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+
+// Settings page with a reset-all-data button and an About card.
+// The actual wiping of data is done by MainActivity through onReset.
+
 import androidx.compose.ui.graphics.Color
 
 import androidx.compose.foundation.layout.*
@@ -15,6 +19,8 @@ import androidx.compose.ui.unit.sp
 internal fun SettingsScreen(
     onReset: () -> Unit
 ) {
+
+    // Controls the "are you sure?" confirmation dialog.
     var showConfirm by remember { mutableStateOf(false) }
 
     Column(
@@ -23,6 +29,7 @@ internal fun SettingsScreen(
     ) {
         Text("Settings", color = WhiteText, fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
+        // Reset card
         Card(
             colors = CardDefaults.cardColors(containerColor = Panel),
             shape = RoundedCornerShape(16.dp),

@@ -1,5 +1,9 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+/*Home page.
+* A scrollable list containing the level card, the task cards, the calendar,
+* and the tasks due on the selected date*/
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,6 +35,7 @@ internal fun HomeScreen(
     onProgressChange: (StudyTask, Int) -> Unit,
     onDeleteTask: (StudyTask) -> Unit
 ) {
+    // Task filter (All/Active/Done)
     var filter by remember { mutableStateOf("All") }
     val filtered = when (filter) {
         "Active" -> tasks.filter { !it.completed }
@@ -38,6 +43,8 @@ internal fun HomeScreen(
         else -> tasks
     }
     val dueTasks = tasks.filter { it.dueDate == selectedDate.toString() }
+
+    // animation for XP bar when Xp changes
     val animatedXp by animateFloatAsState(targetValue = progress.xp / 100f, label = "xp")
 
     LazyColumn(
@@ -45,6 +52,8 @@ internal fun HomeScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+
+        // Progress card: streak, level, XP bar and tasks-completed counter
         item {
             Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(22.dp)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -78,6 +87,7 @@ internal fun HomeScreen(
             }
         }
 
+        // Section header with the remaining task count and the add task button
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f)) {
@@ -88,6 +98,7 @@ internal fun HomeScreen(
             }
         }
 
+        //Filter chips
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("All", "Active", "Done").forEach { option ->
@@ -100,6 +111,7 @@ internal fun HomeScreen(
             }
         }
 
+        // Empty message
         if (filtered.isEmpty()) {
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
@@ -122,7 +134,7 @@ internal fun HomeScreen(
             }
         }
 
-        item {
+        item {   // calendar
             CalendarCard(
                 month = month,
                 selectedDate = selectedDate,
@@ -133,6 +145,7 @@ internal fun HomeScreen(
             )
         }
 
+        // List of tasks due on the date picked on the calendar
         item {
             Text("Tasks for $selectedDate", color = WhiteText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             if (dueTasks.isEmpty()) {
@@ -146,6 +159,8 @@ internal fun HomeScreen(
     }
 }
 
+// One task card: title, due date, size, XP value, progress bar and the -20% / +20% buttons.
+// A colored stripe on the left shows the task size, and a label flags overdue or due-today tasks.
 @Composable
 private fun TaskCard(task: StudyTask, onMinus: () -> Unit, onPlus: () -> Unit, onDelete: () -> Unit) {
     val today = LocalDate.now().toString()
@@ -199,6 +214,7 @@ private fun TaskCard(task: StudyTask, onMinus: () -> Unit, onPlus: () -> Unit, o
     }
 }
 
+// XP reward for task size
 private fun StudyTask.sizeXp(): Int = when (size.lowercase()) {
     "medium" -> 15
     "large" -> 25

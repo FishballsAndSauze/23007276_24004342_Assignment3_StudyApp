@@ -1,5 +1,8 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+// Profile page: contains user's name, rank based on level, and stats.
+// Name can be changed
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -19,9 +22,12 @@ internal fun ProfileScreen(
     userName: String,
     onNameChange: (String) -> Unit
 ) {
+
+    // editing switches between showing the name and the edit field.
     var editing by remember { mutableStateOf(false) }
     var tempName by remember { mutableStateOf(userName) }
 
+    // Title changes when user levels up
     val title = when {
         progress.level >= 10 -> "Master Scholar"
         progress.level >= 5 -> "Dedicated Learner"
@@ -35,6 +41,8 @@ internal fun ProfileScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Spacer(Modifier.height(12.dp))
+
+        // Avatar showing username's first letter
         Box(
             Modifier.size(90.dp).background(Purple.copy(alpha = 0.2f), CircleShape),
             contentAlignment = Alignment.Center
@@ -43,6 +51,7 @@ internal fun ProfileScreen(
         }
 
         if (editing) {
+            // Edit mode, blank goes back to "Student"
             OutlinedTextField(
                 value = tempName,
                 onValueChange = { tempName = it },
@@ -64,6 +73,7 @@ internal fun ProfileScreen(
             }
         }
 
+        // Stats Card
         Card(
             colors = CardDefaults.cardColors(containerColor = Panel),
             shape = RoundedCornerShape(18.dp),

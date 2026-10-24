@@ -1,5 +1,7 @@
 package com.example.a23007276_24004342_assignment3_studyapp
-
+/*Timer page. It shows one of three views: the settings form (before starting),
+  the live countdown, or the "session complete" screen. All timer state lives in
+  MainActivity. This function only displays it and passes button presses back.*/
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -61,6 +63,7 @@ internal fun TimerScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         if (!started) {
+            // Settings form: total time, number of breaks and break length.
             Text("Plan your focus session", color = WhiteText, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Your chosen duration includes all breaks.", color = Muted)
             Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(20.dp)) {
@@ -74,6 +77,7 @@ internal fun TimerScreen(
                     Slider(value = breakCount.toFloat(), onValueChange = { onBreakCountChange(it.toInt()) }, valueRange = 0f..5f, steps = 4)
                     Text("Length of each break: $breakMinutes min", color = WhiteText)
                     Slider(value = breakMinutes.toFloat(), onValueChange = { onBreakMinutesChange(it.toInt()) }, valueRange = 1f..30f, steps = 28)
+                    // Preview of the study/break split. Start is disabled unless there is study time left.
                     val total = totalHours * 60 + totalMinutes
                     val study = total - breakCount * breakMinutes
                     Text(
@@ -89,6 +93,7 @@ internal fun TimerScreen(
             }
             Text("Study phases are divided evenly around your breaks.", color = Muted, fontSize = 12.sp)
         } else if (isFinished) {
+            // Finished view: total study time and a button back to the planner.
             Text("SESSION COMPLETE", color = Cyan, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text("Great work!", color = WhiteText, fontSize = 32.sp, fontWeight = FontWeight.Bold)
             val totalStudy = phases.filter { !it.isBreak }.sumOf { it.durationMs } / 60000
@@ -98,6 +103,7 @@ internal fun TimerScreen(
                 Text("Back to planner")
             }
         } else {
+            // Live countdown view.
             Text("FOCUS SESSION", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Text(currentPhase?.name ?: "Session", color = textColor, fontSize = 26.sp, fontWeight = FontWeight.Bold)
 
@@ -155,6 +161,7 @@ internal fun TimerScreen(
     }
 }
 
+// A label with a - button, the current value and a + button. The value is kept between minValue and MaxValue
 @Composable
 private fun NumberControl(label: String, value: Int, minValue: Int, maxValue: Int, onChange: (Int) -> Unit) {
     Column(Modifier.width(150.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -167,6 +174,7 @@ private fun NumberControl(label: String, value: Int, minValue: Int, maxValue: In
     }
 }
 
+// Turns milliseconds into "MM:SS", or "HH:MM:SS" when it is an hour or more.
 private fun formatTime(milliseconds: Long): String {
     val seconds = max(0L, milliseconds / 1000L)
     val hours = seconds / 3600L

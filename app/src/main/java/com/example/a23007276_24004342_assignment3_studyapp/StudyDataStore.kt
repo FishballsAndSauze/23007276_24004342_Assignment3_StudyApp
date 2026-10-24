@@ -4,6 +4,10 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
+
+/* Handles saving and loading all app data using SharedPreferences, so tasks,
+   progress and the user's name survive the app being closed.
+   Tasks are stored as one JSON string; the other values are stored individually */
 internal object StudyDataStore {
     private const val PREFS = "studybuddy_store"
     private const val TASKS = "tasks"
@@ -15,6 +19,7 @@ internal object StudyDataStore {
     private const val TOTAL_STUDY_MINUTES = "total_study_minutes"
     private const val USER_NAME = "user_name"
 
+    // Reads the saved task list. If the data is missing or corrupted it returns an empty list.
     fun loadTasks(context: Context): List<StudyTask> {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(TASKS, "[]") ?: "[]"
         val result = mutableListOf<StudyTask>()
@@ -41,6 +46,7 @@ internal object StudyDataStore {
         return result
     }
 
+    // Converts the task list to JSON and saves it.
     fun saveTasks(context: Context, tasks: List<StudyTask>) {
         val array = JSONArray()
         tasks.forEach { task ->
@@ -63,6 +69,7 @@ internal object StudyDataStore {
             .apply()
     }
 
+    // Loads level, XP, streak and study time, using defaults if nothing is saved yet.
     fun loadProgress(context: Context): UserProgress {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return UserProgress(

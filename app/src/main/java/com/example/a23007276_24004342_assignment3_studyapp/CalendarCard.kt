@@ -1,5 +1,9 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+
+/* Simple month calendar. Today is tinted, the selected date is purple,
+* and a small cyan dot marks any date that has a task due*/
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -85,6 +89,7 @@ internal fun CalendarCard(
                             }
                         }
                     }
+                    // Pad the last week so its row keeps the same spacing.
                     repeat(7 - week.size) { Spacer(Modifier.size(32.dp)) }
                 }
             }

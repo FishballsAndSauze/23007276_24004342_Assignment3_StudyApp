@@ -58,6 +58,8 @@ import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.YearMonth
 
+// The single activity of the app. It only hosts the Compose UI;
+// all screens and logic live in StudyBuddyApp and the other files.
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,10 +67,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Root composable. It holds all shared app state (tasks, XP, timer, navigation),
+// contains the logic that changes that state, and decides which screen to show.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudyBuddyApp(context: Context) {
-    // ---------- Data ----------
+    // Saved data: tasks, level/XP progress and the user's name are loaded from
+    // SharedPreferences once when the app starts.
     val tasks = remember {
         mutableStateListOf<StudyTask>().apply {
             addAll(StudyDataStore.loadTasks(context))
@@ -77,18 +82,21 @@ fun StudyBuddyApp(context: Context) {
     var progress by remember { mutableStateOf(StudyDataStore.loadProgress(context)) }
     var userName by remember { mutableStateOf(StudyDataStore.loadUserName(context)) }
 
-    // ---------- Navigation ----------
+    // Navigation and UI state: which page is showing, whether the side drawer
+    // or add-task dialog is open, and which date/month the calendar displays.
     var page by remember { mutableStateOf(AppPage.HOME) }
     var drawerOpen by remember { mutableStateOf(false) }
     var addTaskOpen by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var calendarMonth by remember { mutableStateOf(YearMonth.now()) }
 
-    // ---------- Level-up dialog ----------
+    // Level-up pop-up state: whether to show it and which level was reached.
     var showLevelUp by remember { mutableStateOf(false) }
     var newLevel by remember { mutableIntStateOf(1) }
 
-    // ---------- Timer state ----------
+    // Timer state. The first four values are the user's chosen settings.
+    // phases is the planned list of study/break blocks, phaseIndex is the block
+    // currently running, and remainingMs is the time left in that block.
     var totalHours by remember { mutableIntStateOf(1) }
     var totalMinutes by remember { mutableIntStateOf(0) }
     var breakCount by remember { mutableIntStateOf(1) }
@@ -99,12 +107,15 @@ fun StudyBuddyApp(context: Context) {
     var timerRunning by remember { mutableStateOf(false) }
     var timerStarted by remember { mutableStateOf(false) }
 
-    // ---------- Helpers ----------
+    // Writes the current tasks and progress to storage so nothing is lost
+    // when the app is closed.
     fun saveAll() {
         StudyDataStore.saveTasks(context, tasks.toList())
         StudyDataStore.saveProgress(context, progress)
     }
 
+    // Updates the daily study streak. Doing something on consecutive days adds
+    // one, missing a day restarts it at 1, and it only counts once per day.
     fun updateStreak() {
         val today = LocalDate.now().toString()
         val yesterday = LocalDate.now().minusDays(1).toString()
@@ -126,6 +137,9 @@ fun StudyBuddyApp(context: Context) {
         }
     }
 
+    // Gives XP for a completed task (small 10, medium 15, large 25). Every 100 XP
+    // is one level, and any leftover XP carries over to the next level.
+    // Also increases the completed-task counter and triggers the level-up pop-up.
     fun awardTaskXp(task: StudyTask) {
         val earned = when (task.size.lowercase()) {
             "medium" -> 15
@@ -155,6 +169,9 @@ fun StudyBuddyApp(context: Context) {
         saveAll()
     }
 
+    // Called by the +20% / -20% buttons. Keeps progress between 0 and 100.
+    // When a task first reaches 100% it is marked complete and XP is awarded;
+    // rewardClaimed stops the same task giving XP twice.
     fun updateTask(task: StudyTask, newProgress: Int) {
         val bounded = newProgress.coerceIn(0, 100)
         val nowCompleted = bounded == 100
@@ -177,7 +194,9 @@ fun StudyBuddyApp(context: Context) {
         }
     }
 
-    // ---------- Timer logic ----------
+    // The countdown loop. It restarts whenever timerRunning changes and ticks
+    // once per second. When a phase ends it moves to the next one; when the last
+    // phase ends it stops, adds the study minutes to the total and updates the streak.
     LaunchedEffect(timerRunning) {
         while (timerRunning && timerStarted) {
             delay(1000L)
@@ -206,7 +225,9 @@ fun StudyBuddyApp(context: Context) {
         }
     }
 
-    // Pause timer when app goes to background
+    // Pause timer when app goes to background. Listens to the activity lifecycle
+    // and stops the countdown on ON_STOP so no work is done while the app is hidden.
+    // The observer is removed when this composable leaves the screen.
     DisposableEffect(Unit) {
         val lifecycle = (context as ComponentActivity).lifecycle
         val observer = LifecycleEventObserver { _, event ->
@@ -218,12 +239,15 @@ fun StudyBuddyApp(context: Context) {
         onDispose { lifecycle.removeObserver(observer) }
     }
 
-    // ---------- UI ----------
+    // The visible UI: dark theme, a top bar with the menu button, and the
+    // content area that shows whichever page is selected.
     MaterialTheme(colorScheme = darkColorScheme()) {
         Surface(modifier = Modifier.fillMaxSize(), color = Ink) {
             Scaffold(
                 containerColor = Ink,
                 topBar = {
+                    // Top bar: app name, a subtitle that changes with the page,
+                    // and the ☰ button that opens or closes the drawer.
                     TopAppBar(
                         title = {
                             Column {
@@ -257,7 +281,9 @@ fun StudyBuddyApp(context: Context) {
             ) { padding ->
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
 
+                    // Screen switcher: shows exactly one page depending on "page".
                     when (page) {
+                        // Home: level card, task cards and the calendar.
                         AppPage.HOME -> {
                             HomeScreen(
                                 tasks = tasks,
@@ -276,6 +302,7 @@ fun StudyBuddyApp(context: Context) {
                             )
                         }
 
+                        // Timer: the settings screen before starting, then the live countdown.
                         AppPage.TIMER -> {
                             TimerScreen(
                                 totalHours = totalHours,
@@ -291,6 +318,10 @@ fun StudyBuddyApp(context: Context) {
                                 remainingMs = remainingMs,
                                 running = timerRunning,
                                 started = timerStarted,
+                                // Builds the session plan. Total time includes the breaks, so
+                                // study time = total - (breaks x break length). That study time is
+                                // split evenly into (breaks + 1) blocks, with any leftover
+                                // milliseconds added to the first block. Breaks go between blocks.
                                 onStart = {
                                     val totalMs = (totalHours * 60L + totalMinutes) * 60_000L
                                     val breaks = breakCount.coerceAtLeast(0)
@@ -317,7 +348,9 @@ fun StudyBuddyApp(context: Context) {
                                         timerRunning = built.isNotEmpty()
                                     }
                                 },
+                                // Pause button toggles between paused and running.
                                 onPauseResume = { timerRunning = !timerRunning },
+                                // Reset clears the session and returns to the settings screen.
                                 onReset = {
                                     timerRunning = false
                                     timerStarted = false
@@ -328,14 +361,17 @@ fun StudyBuddyApp(context: Context) {
                             )
                         }
 
+                        // Stats: study time, tasks done and a 7-day chart.
                         AppPage.STATS -> {
                             StatsScreen(progress = progress, tasks = tasks)
                         }
 
+                        // Achievements: badges that unlock from tasks, levels, streaks and study time.
                         AppPage.ACHIEVEMENTS -> {
                             AchievementsScreen(progress = progress, tasks = tasks)
                         }
 
+                        // Profile: shows the user's name and stats, and lets them edit the name.
                         AppPage.PROFILE -> {
                             ProfileScreen(
                                 progress = progress,
@@ -347,6 +383,7 @@ fun StudyBuddyApp(context: Context) {
                             )
                         }
 
+                        // Settings: reset button that wipes all saved data and returns to Home.
                         AppPage.SETTINGS -> {
                             SettingsScreen(
                                 onReset = {
@@ -360,7 +397,9 @@ fun StudyBuddyApp(context: Context) {
                         }
                     }
 
-                    // ---------- Drawer ----------
+                    // Dashboard drawer. It slides in from the left over the current page
+                    // and shows the level, XP bar, streak and a shortcut button for each page.
+                    // Choosing a page switches to it and closes the drawer.
                     AnimatedVisibility(
                         visible = drawerOpen,
                         enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
@@ -426,7 +465,9 @@ fun StudyBuddyApp(context: Context) {
                 }
             }
 
-            // ---------- Add Task Dialog ----------
+            // Add-task dialog. Appears when the user taps "Add task". On confirm it creates
+            // a new task from the entered title, description, due date and size, sorts the
+            // list by due date, saves it and closes the dialog.
             if (addTaskOpen) {
                 AddTaskDialog(
                     onDismiss = { addTaskOpen = false },
@@ -447,7 +488,7 @@ fun StudyBuddyApp(context: Context) {
                 )
             }
 
-            // ---------- Level-up Dialog ----------
+            // Level-up dialog. Shown after XP pushes the user into a new level.
             if (showLevelUp) {
                 AlertDialog(
                     onDismissRequest = { showLevelUp = false },
@@ -473,6 +514,7 @@ fun StudyBuddyApp(context: Context) {
     }
 }
 
+// A reusable full-width button used for each shortcut in the dashboard drawer.
 @Composable
 private fun DrawerButton(label: String, onClick: () -> Unit) {
     Button(

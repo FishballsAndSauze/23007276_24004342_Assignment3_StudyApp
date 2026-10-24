@@ -1,5 +1,7 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+// Stats page: four summary cards and a bar chart of the last 7 days.
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,11 +25,12 @@ internal fun StatsScreen(
     tasks: List<StudyTask>
 ) {
     val completedThisWeek = tasks.count { it.completed }
+    // Convert total study minutes into hours and minutes for display.
     val totalMinutes = progress.totalStudyMinutes
     val hours = totalMinutes / 60
     val mins = totalMinutes % 60
 
-    // Simple last-7-days mock data based on completed tasks (real data would need daily logs)
+    // Counts completed tasks for each of the last 7 days, matched by due date
     val last7 = (0..6).map { dayOffset ->
         val date = LocalDate.now().minusDays(dayOffset.toLong())
         tasks.count { it.completed && it.dueDate == date.toString() }.coerceAtLeast(0)
@@ -55,6 +58,7 @@ internal fun StatsScreen(
             }
         }
 
+        // Bar chart drawn with Canvas. Bar height is scaled against the largest value.
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Panel),
@@ -86,6 +90,7 @@ internal fun StatsScreen(
     }
 }
 
+// A small card showing one statistic: a title and a big value.
 @Composable
 private fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
     Card(

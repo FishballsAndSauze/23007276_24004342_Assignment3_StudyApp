@@ -1,5 +1,9 @@
 package com.example.a23007276_24004342_assignment3_studyapp
 
+/*Pop up for adding a task with a title, description, due date and task size
+* It only collects and checks the input
+* Main Activity creates and saves the task*/
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +30,7 @@ internal fun AddTaskDialog(
     onDismiss: () -> Unit,
     onCreate: (String, String, String, String) -> Unit
 ) {
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var dueDate by remember { mutableStateOf(LocalDate.now().toString()) }
@@ -47,17 +52,22 @@ internal fun AddTaskDialog(
                     singleLine = true
                 )
                 Text("Task size", color = WhiteText, fontWeight = FontWeight.Bold)
+                // Task size buttons, the selected size is filled
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Small", "Medium", "Large").forEach { option ->
                         if (size == option) Button(onClick = { size = option }) { Text(option) }
                         else OutlinedButton(onClick = { size = option }) { Text(option) }
                     }
                 }
+
+                // Shows the XP the size will give
                 Text("Reward: ${when (size) { "Small" -> 10; "Medium" -> 15; else -> 25 }} XP", color = Cyan)
                 if (error.isNotBlank()) Text(error, color = Color(0xFFFF9292), fontSize = 12.sp)
             }
         },
         confirmButton = {
+
+            // Validates the title and date before creating the task
             Button(onClick = {
                 val parsed = try { LocalDate.parse(dueDate); true } catch (_: DateTimeParseException) { false }
                 when {
